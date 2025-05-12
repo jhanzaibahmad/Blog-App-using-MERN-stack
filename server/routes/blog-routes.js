@@ -1,13 +1,30 @@
-const express = require("express")
+const express = require("express");
 const blogRouter = express.Router();
-const { getAllBlogs , addBlog ,
-     updateBlog ,getById , 
-    deleteBlog , getByUserId} = require("../controller/blog-controller");
+const {
+  getAllBlogs,
+  addBlog,
+  updateBlog,
+  getById,
+  deleteBlog,
+  getByUserId
+} = require("../controller/blog-controller");
 
-blogRouter.get("/",getAllBlogs);
-blogRouter.post('/add', addBlog);
-blogRouter.put("/update/:id",  updateBlog);
+// Route to fetch all blogs
+blogRouter.get("/", getAllBlogs);
+
+// Route to add a new blog
+blogRouter.post("/add", addBlog);
+
+// Route to update a blog by its ID
+blogRouter.put("/update/:id", updateBlog);
+
+// Route to get a blog by its ID
 blogRouter.get("/:id", getById);
-blogRouter.delete("/:id",deleteBlog);
-blogRouter.get("/user/:id",getByUserId)
+
+// Route to delete a blog by its ID
+blogRouter.delete("/:id", deleteBlog);
+
+// Route to get blogs by user ID (showing all blogs for a specific user)
+blogRouter.get("/user/:id", getByUserId);
+
 module.exports = blogRouter;

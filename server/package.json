@@ -1,73 +1,93 @@
 {
- 
-
-  "name": "blogapp",
- 
-
-  "version": "1.0.0",
- 
-
-  "description": "",
- 
-
-  "main": "server.js",
- 
-
-  "scripts": {
- 
-
-   
-
-  "start": "nodemon server.js",
- 
-
-   
-
-  "test": "echo \"Error: no test specified\" && exit 1"
- 
-
-  },
- 
-
-  "author": "khushi patel",
- 
-
-  "license": "ISC",
- 
-
-  "devDependencies": {
- 
-
-   
-
-  "nodemon": "^2.0.16"
- 
-
-  },
- 
-
-  "dependencies": {
- 
-
-   
-
-  "bcryptjs": "^2.4.3",
- 
-
-   
-
-  "cors": "^2.8.5",
- 
-
-   
-
-  "express": "^4.18.1",
- 
-
-   
-
-  "mongoose": "^6.3.4"
- 
-
-  }
+ 
+
+ "name": "blogapp",
+ 
+
+ "version": "1.0.0",
+ 
+
+ "description": "",
+ 
+
+ "main": "server.js",
+ 
+
+ "scripts": {
+ 
+
+  
+
+ "start": "nodemon server.js",
+ 
+
+  
+
+ "test": "echo \"Error: no test specified\" && exit 1"
+ 
+
+ },
+ 
+
+ "author": "khushi patel",
+ 
+
+ "license": "ISC",
+ 
+
+ "devDependencies": {
+ 
+
+  
+
+ "nodemon": "^2.0.16"
+ 
+
+ },
+ 
+
+ "dependencies": {
+ 
+
+  
+
+ "@aws-sdk/client-dynamodb": "^3.808.0",
+ 
+
+  
+
+ "@aws-sdk/lib-dynamodb": "^3.808.0",
+ 
+
+  
+
+ "aws-sdk": "^2.1692.0",
+ 
+
+  
+
+ "bcryptjs": "^2.4.3",
+ 
+
+  
+
+ "cors": "^2.8.5",
+ 
+
+  
+
+ "dotenv": "^16.5.0",
+ 
+
+  
+
+ "express": "^4.18.1",
+ 
+
+  
+
+ "mongoose": "^6.3.4"
+ 
+
+ }
 }
