@@ -36,6 +36,7 @@ const AddBlogs = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log(inputs);
+    console.log("userId retrieved from storage: ", localStorage.getItem("userId"));
     sendRequest()
       .then((data) => console.log(data))
       .then(() => navigate("/blogs"));

@@ -1,84 +1,124 @@
-const AWS = require("aws-sdk");
-require('dotenv').config();
+// Revised DynamoDB table creation script based on your controllers
+const { DynamoDB } = require("@aws-sdk/client-dynamodb");
+require("dotenv").config();
 
-// Configure AWS SDK with your environment variables
-AWS.config.update({
+// Initialize DynamoDB client
+const dynamodb = new DynamoDB({
+  region: process.env.AWS_REGION || "us-east-1",
+  credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    region: "us-east-1" 
+  },
 });
 
-const dynamodb = new AWS.DynamoDB();
-
+// Create Users table
 const createUsersTable = async () => {
-    const params = {
-        TableName: "Users",
+  const params = {
+    TableName: "Users",
+    KeySchema: [
+      { AttributeName: "email", KeyType: "HASH" } // Email as partition key
+    ],
+    AttributeDefinitions: [
+      { AttributeName: "email", AttributeType: "S" },
+      { AttributeName: "userId", AttributeType: "S" }
+    ],
+    GlobalSecondaryIndexes: [
+      {
+        IndexName: "UserIdIndex",
         KeySchema: [
-            { AttributeName: "userId", KeyType: "HASH" }, // Partition key
+          { AttributeName: "userId", KeyType: "HASH" }
         ],
-        AttributeDefinitions: [
-            { AttributeName: "userId", AttributeType: "S" },
-            { AttributeName: "email", AttributeType: "S" }, // Add the email attribute
-        ],
-        ProvisionedThroughput: {
-            ReadCapacityUnits: 5,
-            WriteCapacityUnits: 5
+        Projection: {
+          ProjectionType: "ALL"
         },
-        GlobalSecondaryIndexes: [
-            {
-                IndexName: "EmailIndex", // GSI name
-                KeySchema: [
-                    { AttributeName: "email", KeyType: "HASH" }, // Partition key for the GSI
-                ],
-                Projection: {
-                    ProjectionType: "ALL", // Include all attributes in the index
-                },
-                ProvisionedThroughput: {
-                    ReadCapacityUnits: 5,
-                    WriteCapacityUnits: 5
-                },
-            }
-        ]
-    };
-
-    try {
-        const data = await dynamodb.createTable(params).promise();
-        console.log("Users Table Created with GSI on email:", data);
-    } catch (err) {
-        console.error("Error creating Users table:", err);
-    }
-};
-
-// Create Blogs Table
-const createBlogsTable = async () => {
-    const params = {
-        TableName: "Blogs",
-        KeySchema: [
-            { AttributeName: "blogId", KeyType: "HASH" }, // Partition key
-            { AttributeName: "userId", KeyType: "RANGE" }, // Sort key
-        ],
-        AttributeDefinitions: [
-            { AttributeName: "blogId", AttributeType: "S" },
-            { AttributeName: "userId", AttributeType: "S" },
-        ],
         ProvisionedThroughput: {
-            ReadCapacityUnits: 5,
-            WriteCapacityUnits: 5
+          ReadCapacityUnits: 5,
+          WriteCapacityUnits: 5
         }
-    };
-
-    try {
-        const data = await dynamodb.createTable(params).promise();
-        console.log("Blogs Table Created:", data);
-    } catch (err) {
-        console.error("Error creating Blogs table:", err);
+      }
+    ],
+    ProvisionedThroughput: {
+      ReadCapacityUnits: 5,
+      WriteCapacityUnits: 5
     }
+  };
+
+  try {
+    const result = await dynamodb.createTable(params);
+    console.log("Users table created successfully:", result);
+    return result;
+  } catch (error) {
+    if (error.name === 'ResourceInUseException') {
+      console.log("Users table already exists");
+    } else {
+      console.error("Error creating Users table:", error);
+      throw error;
+    }
+  }
 };
 
-// Run the table creation functions
+// Create Blogs table
+const createBlogsTable = async () => {
+  const params = {
+    TableName: "Blogs",
+    KeySchema: [
+      { AttributeName: "blogId", KeyType: "HASH" } // blogId as partition key
+    ],
+    AttributeDefinitions: [
+      { AttributeName: "blogId", AttributeType: "S" },
+      { AttributeName: "userEmail", AttributeType: "S" }
+    ],
+    GlobalSecondaryIndexes: [
+      {
+        IndexName: "UserBlogsIndex",
+        KeySchema: [
+          { AttributeName: "userEmail", KeyType: "HASH" }
+        ],
+        Projection: {
+          ProjectionType: "ALL"
+        },
+        ProvisionedThroughput: {
+          ReadCapacityUnits: 5,
+          WriteCapacityUnits: 5
+        }
+      }
+    ],
+    ProvisionedThroughput: {
+      ReadCapacityUnits: 5,
+      WriteCapacityUnits: 5
+    }
+  };
+
+  try {
+    const result = await dynamodb.createTable(params);
+    console.log("Blogs table created successfully:", result);
+    return result;
+  } catch (error) {
+    if (error.name === 'ResourceInUseException') {
+      console.log("Blogs table already exists");
+    } else {
+      console.error("Error creating Blogs table:", error);
+      throw error;
+    }
+  }
+};
+
+// Function to create all tables
 const createTables = async () => {
+  try {
+    console.log("Creating DynamoDB tables...");
     await createUsersTable();
-    //await createBlogsTable();
+    await createBlogsTable();
+    console.log("All tables created successfully!");
+  } catch (error) {
+    console.error("Failed to create tables:", error);
+  }
 };
 
-createTables();
+// Execute the function if this script is run directly
+if (require.main === module) {
+  createTables();
+}
+
+// Export the functions for use in other scripts
+module.exports = { createUsersTable, createBlogsTable, createTables };

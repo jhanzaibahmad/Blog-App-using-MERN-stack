@@ -1,6 +1,6 @@
 // Import necessary packages from AWS SDK v3
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const { DynamoDBDocumentClient, PutCommand, ScanCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
+const { DynamoDBDocumentClient, PutCommand, ScanCommand, QueryCommand, GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 
 // Initialize DynamoDBClient
 const client = new DynamoDBClient({
@@ -17,7 +17,9 @@ const docClient = DynamoDBDocumentClient.from(client);
 // Export the client for other modules to use
 module.exports = {
   docClient,
-  ScanCommand,
   PutCommand,
+  GetCommand,
+  ScanCommand,
   QueryCommand,
+  UpdateCommand
 };

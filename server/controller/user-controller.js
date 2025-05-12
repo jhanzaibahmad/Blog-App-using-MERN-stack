@@ -1,65 +1,70 @@
-const bcrypt = require("bcryptjs");
-const { docClient, PutCommand, ScanCommand, QueryCommand } = require("../config/db"); // Import the updated docClient and commands
+const { docClient, PutCommand, GetCommand, QueryCommand, UpdateCommand } = require('../config/db');
+const { v4: uuidv4 } = require('uuid');
+const bcrypt = require('bcryptjs');
 
 // Define table name
 const USERS_TABLE = "Users";
 
-// Get all users (if needed for debugging or some other functionality)
+// Get all users (for debugging or admin purposes)
 const getAllUser = async (req, res) => {
   try {
     const params = {
       TableName: USERS_TABLE,
     };
-    const result = await docClient.send(new ScanCommand(params)); // Using ScanCommand instead of .scan()
-    return res.status(200).json({ users: result.Items });
+    const result = await docClient.send(new QueryCommand(params));
+    // Remove passwords before sending user data
+    const users = result.Items.map(user => {
+      const { password, ...userWithoutPassword } = user;
+      return userWithoutPassword;
+    });
+    return res.status(200).json({ users });
   } catch (err) {
     console.log(err);
     return res.status(500).json({ message: "Error fetching users" });
   }
 };
 
+// Sign up a new user
 const signUp = async (req, res) => {
   const { name, email, password } = req.body;
 
-  let existingUser;
+  // Check if user already exists
   try {
     const params = {
       TableName: USERS_TABLE,
-      IndexName: "EmailIndex", // Use the GSI for email
-      KeyConditionExpression: "email = :email", // Query by email in the GSI
-      ExpressionAttributeValues: {
-        ":email": email,
-      },
+      Key: { email }
     };
-    const userResult = await docClient.send(new QueryCommand(params)); // Using QueryCommand
-    existingUser = userResult.Items && userResult.Items[0];
+    
+    const userResult = await docClient.send(new GetCommand(params));
+    if (userResult.Item) {
+      return res.status(400).json({ message: "User already exists" });
+    }
   } catch (err) {
     console.error('Error checking if user exists:', err);
     return res.status(500).json({ message: "Error checking user" });
   }
 
-  if (existingUser) {
-    return res.status(400).json({ message: "User already exists" });
-  }
-
-  const hashedPassword = bcrypt.hashSync(password, 10); // Hash the password
+  // Hash password and create new user
+  const hashedPassword = bcrypt.hashSync(password, 10);
+  const userId = uuidv4(); // Generate unique ID for GSI
 
   const newUser = {
-    email,
+    email,        // Primary key
+    userId,       // For the GSI
     name,
     password: hashedPassword,
-    blogs: [] // Initialize empty blogs list
-  };
-
-  const putParams = {
-    TableName: USERS_TABLE,
-    Item: newUser,
+    blogs: []     // Initialize empty blogs array
   };
 
   try {
-    // Save the user to DynamoDB
-    await docClient.send(new PutCommand(putParams)); // Using PutCommand to save the user
-    return res.status(201).json({ user: newUser });
+    await docClient.send(new PutCommand({
+      TableName: USERS_TABLE,
+      Item: newUser
+    }));
+    
+    // Don't return password in response
+    const { password, ...userWithoutPassword } = newUser;
+    return res.status(201).json({ user: email });
   } catch (err) {
     console.error('Error signing up user:', err);
     return res.status(500).json({ message: "Error signing up user" });
@@ -70,32 +75,33 @@ const signUp = async (req, res) => {
 const logIn = async (req, res) => {
   const { email, password } = req.body;
 
-  let existingUser;
   try {
-    // Retrieve the user by email
+    // Get user by email (primary key)
     const params = {
       TableName: USERS_TABLE,
-      Key: { email },
+      Key: { email }
     };
-    const userResult = await docClient.send(new QueryCommand(params)); // Using QueryCommand
-    existingUser = userResult.Items && userResult.Items[0];
+    
+    const userResult = await docClient.send(new GetCommand(params));
+    const existingUser = userResult.Item;
+    
+    if (!existingUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Compare passwords
+    const isPasswordCorrect = bcrypt.compareSync(password, existingUser.password);
+    if (!isPasswordCorrect) {
+      return res.status(400).json({ message: "Incorrect password" });
+    }
+
+    // Don't return password in response
+    const { password: _, ...userWithoutPassword } = existingUser;
+    return res.status(200).json({ user: email });
   } catch (err) {
-    console.error('Error retrieving user for login:', err);
-    return res.status(500).json({ message: "Error checking user" });
+    console.error('Error logging in:', err);
+    return res.status(500).json({ message: "Error logging in" });
   }
-
-  if (!existingUser) {
-    return res.status(404).json({ message: "User not found" });
-  }
-
-  // Compare the provided password with the hashed password
-  const isPasswordCorrect = bcrypt.compareSync(password, existingUser.password);
-
-  if (!isPasswordCorrect) {
-    return res.status(400).json({ message: "Incorrect password" });
-  }
-
-  return res.status(200).json({ user: existingUser });
 };
 
 module.exports = { getAllUser, signUp, logIn };

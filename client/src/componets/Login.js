@@ -7,9 +7,10 @@ import { useNavigate, useLocation } from "react-router-dom";
 import config from "../config";
 
 const Login = () => {
+  // Frontend logic for signup (corrected):
   const location = useLocation();
-  const naviagte = useNavigate();
-  const dispath = useDispatch();
+  const navigate = useNavigate(); // Fixed typo: naviagte → navigate
+  const dispatch = useDispatch(); // Fixed typo: dispath → dispatch
   const { isSignupButtonPressed } = location.state || {};
 
   const [inputs, setInputs] = useState({
@@ -18,17 +19,19 @@ const Login = () => {
     password: "",
   });
   const [isSignup, setIsSignup] = useState(isSignupButtonPressed || false);
+
   const handleChange = (e) => {
     setInputs((prevState) => ({
       ...prevState,
       [e.target.name]: e.target.value,
     }));
   };
+
   useEffect(() => {
     setIsSignup(isSignupButtonPressed);
   }, [isSignupButtonPressed]);
+
   const sendRequest = async (type = "login") => {
-    console.log("inside send req");
     console.log(`${config.BASE_URL}/api/users/${type}`);
     const res = await axios
       .post(`${config.BASE_URL}/api/users/${type}`, {
@@ -39,24 +42,32 @@ const Login = () => {
       .catch((err) => console.log(err));
 
     const data = await res.data;
-    console.log("return");
-    console.log(data);
+    console.log("returned data: ", data);
     return data;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log(inputs);
+    
     if (isSignup) {
       sendRequest("signup")
-        .then((data) => localStorage.setItem("userId", data.user._id))
-        .then(() => dispath(authActions.login()))
-        .then(() => naviagte("/blogs"));
+        .then((data) => {
+          localStorage.setItem("userId", data.user);
+          console.log("userId saved on sign up: ", localStorage.getItem("userId"));
+          return data;
+        })
+        .then(() => dispatch(authActions.login()))
+        .then(() => navigate("/blogs"));
     } else {
       sendRequest()
-        .then((data) => localStorage.setItem("userId", data.user._id))
-        .then(() => dispath(authActions.login()))
-        .then(() => naviagte("/blogs"));
+        .then((data) => {
+          localStorage.setItem("userId", data.user);
+          console.log("userId retrieved from storage: ", localStorage.getItem("userId"));
+          return data;
+        })
+        .then(() => dispatch(authActions.login()))
+        .then(() => navigate("/blogs"));
     }
   };
   return (
